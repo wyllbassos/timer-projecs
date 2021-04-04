@@ -1,97 +1,154 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { isToday, format, parseISO, isAfter, startOfDay } from 'date-fns';
+import ptBR from 'date-fns/locale/pt-BR';
+import { FiClock, FiPower } from 'react-icons/fi';
+import DayPicker, { DayModifiers } from 'react-day-picker';
+import 'react-day-picker/lib/style.css';
 
-import Header from '../../components/Header';
-
+import { useAuth } from '../../hooks/auth';
 import api from '../../services/api';
 
-import Food from '../../components/Food';
-import ModalAddFood from '../../components/ModalAddFood';
-import ModalEditFood from '../../components/ModalEditFood';
+import { Container, Header, HeaderContent, Profile, Content } from './styles';
 
-import { FoodsContainer } from './styles';
+import logoImg from '../../assets/logo.jpg';
 
-interface IFoodPlate {
-  id: number;
-  name: string;
-  image: string;
-  price: string;
-  description: string;
+interface MonthAvailabilityItem {
+  day: number;
   available: boolean;
 }
 
+interface Appointment {
+  id: string;
+  date: string;
+  hourFormatted: string;
+  user: {
+    name: string;
+    avatar_url: string;
+  };
+}
+
 const Dashboard: React.FC = () => {
-  const [foods, setFoods] = useState<IFoodPlate[]>([]);
-  const [editingFood, setEditingFood] = useState<IFoodPlate>({} as IFoodPlate);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editModalOpen, setEditModalOpen] = useState(false);
+  const { signOut, user } = useAuth();
 
-  useEffect(() => {
-    async function loadFoods(): Promise<void> {
-      // TODO LOAD FOODS
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+
+  const [monthAvailability, setMonthAvailability] = useState<
+    MonthAvailabilityItem[]
+  >([]);
+
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+
+  const handleDateChange = useCallback((day: Date, modifiers: DayModifiers) => {
+    if (modifiers.available && isAfter(day, startOfDay(Date.now()))) {
+      setSelectedDate(day);
     }
-
-    loadFoods();
   }, []);
 
-  async function handleAddFood(
-    food: Omit<IFoodPlate, 'id' | 'available'>,
-  ): Promise<void> {
-    try {
-      // TODO ADD A NEW FOOD PLATE TO THE API
-    } catch (err) {
-      console.log(err);
-    }
-  }
+  const handleMonthChange = useCallback((month: Date) => {
+    setCurrentMonth(month);
+  }, []);
 
-  async function handleUpdateFood(
-    food: Omit<IFoodPlate, 'id' | 'available'>,
-  ): Promise<void> {
-    // TODO UPDATE A FOOD PLATE ON THE API
-  }
+  // useEffect(() => {
+  //   api
+  //     .get(`/providers/${user.id}/month-availability`, {
+  //       params: {
+  //         year: currentMonth.getFullYear(),
+  //         month: currentMonth.getMonth() + 1,
+  //       },
+  //     })
+  //     .then(response => {
+  //       setMonthAvailability(response.data);
+  //     });
+  // }, [currentMonth, user.id]);
 
-  async function handleDeleteFood(id: number): Promise<void> {
-    // TODO DELETE A FOOD PLATE FROM THE API
-  }
+  // useEffect(() => {
+  //   api
+  //     .get<Appointment[]>('/appointments/me', {
+  //       params: {
+  //         year: selectedDate.getFullYear(),
+  //         month: selectedDate.getMonth() + 1,
+  //         day: selectedDate.getDate(),
+  //       },
+  //     })
+  //     .then(response => {
+  //       const appointmentsFormatted = response.data.map(appointment => ({
+  //         ...appointment,
+  //         hourFormatted: format(parseISO(appointment.date), 'HH:mm'),
+  //       }));
 
-  function toggleModal(): void {
-    setModalOpen(!modalOpen);
-  }
+  //       setAppointments(appointmentsFormatted);
+  //     });
+  // }, [selectedDate]);
 
-  function toggleEditModal(): void {
-    setEditModalOpen(!editModalOpen);
-  }
+  const disabledDays = useMemo(() => {
+    const dates = monthAvailability
+      .filter(monthDay => monthDay.available === false)
+      .map(monthDay => {
+        const year = currentMonth.getFullYear();
+        const month = currentMonth.getMonth();
 
-  function handleEditFood(food: IFoodPlate): void {
-    // TODO SET THE CURRENT EDITING FOOD ID IN THE STATE
-  }
+        return new Date(year, month, monthDay.day);
+      });
+
+    return dates;
+  }, [currentMonth, monthAvailability]);
+
+  const selectedDateAsText = useMemo(() => {
+    return format(selectedDate, "'Dia' dd 'de' MMMM", {
+      locale: ptBR,
+    });
+  }, [selectedDate]);
+
+  const selectedWeekDay = useMemo(() => {
+    return format(selectedDate, 'cccc', {
+      locale: ptBR,
+    });
+  }, [selectedDate]);
+
+  const morningAppointments = useMemo(() => {
+    return appointments.filter(appointment => {
+      return parseISO(appointment.date).getHours() < 12;
+    });
+  }, [appointments]);
+
+  const afternoonAppointments = useMemo(() => {
+    return appointments.filter(appointment => {
+      return parseISO(appointment.date).getHours() >= 12;
+    });
+  }, [appointments]);
+
+  const nextAppointment = useMemo(() => {
+    return appointments.find(appointment =>
+      isAfter(parseISO(appointment.date), new Date()),
+    );
+  }, [appointments]);
 
   return (
-    <>
-      <Header openModal={toggleModal} />
-      <ModalAddFood
-        isOpen={modalOpen}
-        setIsOpen={toggleModal}
-        handleAddFood={handleAddFood}
-      />
-      <ModalEditFood
-        isOpen={editModalOpen}
-        setIsOpen={toggleEditModal}
-        editingFood={editingFood}
-        handleUpdateFood={handleUpdateFood}
-      />
+    <Container>
+      <Header>
+        <HeaderContent>
+          <img src={logoImg} alt="GoBarber" />
 
-      <FoodsContainer data-testid="foods-list">
-        {foods &&
-          foods.map(food => (
-            <Food
-              key={food.id}
-              food={food}
-              handleDelete={handleDeleteFood}
-              handleEditFood={handleEditFood}
-            />
-          ))}
-      </FoodsContainer>
-    </>
+          <Profile>
+            <img src={user.avatar_url} alt={user.name} />
+            <div>
+              <span>Ben vindo,</span>
+              <Link to="/profile">
+                <strong>{user.name}</strong>
+              </Link>
+            </div>
+          </Profile>
+
+          <button type="button" onClick={signOut}>
+            <FiPower />
+          </button>
+        </HeaderContent>
+      </Header>
+
+      <Content />
+    </Container>
   );
 };
 
