@@ -35,7 +35,7 @@ interface ProjectProps {
   clientColor: string;
 }
 
-interface TaskProps {
+export interface TaskProps {
   id: number;
   task: string;
   link: string | null;
@@ -46,11 +46,13 @@ interface TaskProps {
   duration: string;
 }
 
+export interface DaysTasksProps {
+  day: string;
+  tasks: TaskProps[];
+}
+
 interface DayRegistersProps {
-  registers: {
-    day: string;
-    tasks: TaskProps[];
-  };
+  registers: DaysTasksProps;
 }
 
 const DayRegisters: React.FC<DayRegistersProps> = ({

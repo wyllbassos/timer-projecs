@@ -17,6 +17,8 @@ const emptyTime = { m: null, s: null };
 const Dashboard: React.FC = () => {
   const { signOut, user } = useAuth();
 
+  const [daysTasks, setDaysTasks] = useState(dataTest);
+
   return (
     <Container>
       <Header>
@@ -41,8 +43,8 @@ const Dashboard: React.FC = () => {
 
       <Content>
         <TimerForm />
-        {dataTest.map(data => (
-          <DayRegisters key={data.day} registers={data} />
+        {daysTasks.map(dayTasks => (
+          <DayRegisters key={dayTasks.day} registers={dayTasks} />
         ))}
       </Content>
     </Container>

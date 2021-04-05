@@ -29,7 +29,7 @@ const emptyTask = {
   timeEnd: emptyTime,
 };
 
-interface TaskTimerProps {
+export interface TaskTimerProps {
   id: number | null;
   task: string;
   info: string;

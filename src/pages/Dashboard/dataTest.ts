@@ -1,4 +1,6 @@
-export const dataTest = [
+import { DaysTasksProps } from './DayRegisters/index';
+
+export const dataTest: DaysTasksProps[] = [
   {
     day: 'Hoje',
     tasks: [
